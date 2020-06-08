@@ -4,13 +4,15 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 
+var userController = require('./controllers/UserController');
+
 var mysql = require('mysql');
 var session = require('express-session');
 var bodyParser = require('body-parser');
 var bcrypt = require('bcryptjs')
 
 var configDB = require('./database/config')
-//para mensajes de alertas
+    //para mensajes de alertas
 var flash = require('connect-flash');
 
 var indexRouter = require('./routes/index');
@@ -24,25 +26,23 @@ var favoritoRouter = require('./routes/favoritos');
 var quizRouter = require('./routes/quiz');
 var ungeneroRouter = require('./routes/ungenero');
 var loginRouter = require('./routes/login');
+var authRouter = require('./routes/auth');
 var registroRouter = require('./routes/registro');
+var addResenaRouter = require('./routes/addResena');
+var userDetailRouter = require('./routes/userdetail');
+var myProfileRouter = require('./routes/myProfile');
+var editarResenaRouter = require('./routes/editarResena')
 
 var app = express();
 
-var connection = mysql.createConnection({
-	host     : 'localhost',
-	user     : 'root',
-	password : '',
-	database : 'telatiro'
-});
-
 //sesion
 app.use(session({
-	secret: 'secret',
-	resave: true,
-	saveUninitialized: true
+    secret: 'secret',
+    resave: true,
+    saveUninitialized: true
 }));
 app.use(flash());
-app.use(bodyParser.urlencoded({extended : true}));
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
 
@@ -59,7 +59,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
 app.use('/index', indexRouter);
-app.use('/users', usersRouter);
 app.use('/genero', generoRouter);
 app.use('/detalle', detalleRouter);
 app.use('/buscador', buscadorRouter);
@@ -71,81 +70,58 @@ app.use('/ungenero', ungeneroRouter);
 app.use('/login', loginRouter);
 app.use('/registro', registroRouter);
 
-
-app.use(function(req, res, next){
-  res.locals.mensajeRegistro= req.flash('mensajeRegistro');
-  next();
- });
 //login
-app.post('/auth', function(request, response) {
-  var username = request.body.username;
-  // var salt = bcrypt.genSaltSync(10);
-  // var password = bcrypt.hashSync(request.body.password, salt);
-	var password = request.body.password;
-	if (username && password) {
-		// connection.query('SELECT * FROM usuarios WHERE username = ? AND password = ?', [username, password], function(error, results, fields) {
-      connection.query('SELECT * FROM usuarios WHERE username = ?', username, function(error, results, fields) {
-			if (results.length > 0) {
-
-        var user = results[0];
-        // console.log(user)
-        if(bcrypt.compareSync(password, user.password)){
-          request.session.loggedin = true;
-          request.session.username = username;
-          response.redirect('/');
-        } else {
-          response.send('Usuario o contraseña incorrecta!');
-        }
-
-			} else {
-        // request.flash('mensajeRegistro','Gracias por crear tu cuenta, ahora estas autentificado.');
-				response.send('Usuario o contraseña incorrecta!');
-			}			
-			response.end();
-		});
-	} else {
-		response.send('Please enter Username and Password!');
-		response.end();
-	}
-});
+app.use('/auth', authRouter);
 
 //registro
-app.post('/register', (request, response) => {
-  var salt = bcrypt.genSaltSync(10);
-  var password = bcrypt.hashSync(request.body.password, salt);
-  var userRegister = {
-    username : request.body.username,
-    email : request.body.email,
-    password : password,
-    born_date : request.body.born_date
-  }
+app.post('/register', userController.postRegister);
 
-  connection.query('INSERT INTO usuarios SET ?', userRegister, (error, result) => {
-      if (error) throw error;
+//Lista de usuarios
+app.use('/users', usersRouter);
 
-      console.log(result)
-      // response.status(201).send(
-      //   request.flash('mensajeRegistro','Gracias por crear tu cuenta, ahora estas autentificado.')
-      // );
-      response.status(201).send(`User added with ID: ${result.insertId}`);
-  });
-});
+//detalle de usuario
+app.use('/users/:userid?', userController.getUserById);
 
+//agregar reseña
+app.use('/addresena', addResenaRouter);
 
-// catch 404 and forward to error handler
-app.use(function(req, res, next) {
-  next(createError(404));
-});
+//Buscador
+app.post('/buscarusuario', userController.searchUser);
+
+//get Reseñas
+app.get('/getresenas/:idPelicula', userController.getResenas);
+
+//get Reseña
+app.get('/editarresena/:id', userController.getResena);
+
+//user profile
+app.use('/miperfil', myProfileRouter);
+
+//get Reseñas usuario
+app.get('/getresenasbyuser', userController.getResenasListByUser);
+
+//get myprofile
+app.get('/getmyprofile', userController.getMyProfile);
+
+//Eliminar reseña
+app.get('/deleteresena/:id', userController.deleteResena);
+
+//editar
+// app.use('/editarresena', editarResenaRouter);
+
+//Guardar Reseña
+app.post('/guardarresena', userController.updateResena);
+
 
 // error handler
 app.use(function(err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
+    // set locals, only providing error in development
+    res.locals.message = err.message;
+    res.locals.error = req.app.get('env') === 'development' ? err : {};
 
-  // render the error page
-  res.status(err.status || 500);
-  res.render('error');
+    // render the error page
+    res.status(err.status || 500);
+    res.render('error');
 });
 
 module.exports = app;

@@ -1,9 +1,10 @@
 var express = require('express');
 var router = express.Router();
+var userController = require('../controllers/UserController')
 
-/* GET Quiz page. */
+/* GET Login page. */
 router.get('/', function(req, res, next) {
-  res.render('login', { title: 'Login' });
+  res.render('login', { title: 'Login', error: '', success: '' });
 });
 
 module.exports = router;

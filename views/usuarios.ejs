@@ -1,0 +1,33 @@
+<%- include('header'); %>
+
+
+<div class="userSearch">
+    <form action="buscarusuario" method="post">
+        <input type="text" name="searchUser" placeholder="Buscador de Usuarios" style="width: 200px; padding: 10px;">
+        <button type="submit">Buscar</button>
+    </form>
+</div>
+
+    <% if(usuarios == undefined) { %>
+        <h2>No hay resultados</h2>
+    <% } else { %>
+    <table style="border: solird 1px #000;" class="table">
+        <tr>
+            <th>Usuario</th>
+            <th>Correo</th>
+            <th>Fecha de Nacimiento</th>
+        </tr>
+        <% usuarios.forEach(function(user) { %>
+            <tr>
+                <td><a href='/users/<%=user.id%>'><%=user.username%></a></td>
+                <td><%=user.email%></td>
+                <td><%=user.born_date%></td>
+            </tr>
+            <% }); %>
+
+        </table>
+
+<% } %>
+
+
+    <%- include('footer'); %>
